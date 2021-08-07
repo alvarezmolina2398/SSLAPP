@@ -1,11 +1,41 @@
-import React  from 'react';
-import { View,Text, ViewPropTypes, ImageBackground,Image,TextInput} from 'react-native';
+import React from 'react';
+import { View, Text, ViewPropTypes, ImageBackground, Image, TextInput } from 'react-native';
 import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-export default class Home extends React.Component{
-    render(){
-        return(
-            <ImageBackground
+export default class Home extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      loading: false,
+      formularios: [],
+      url: 'https://backend.ssldigital.app/formulario?vigencia=true&idEmpresa=22',
+    }
+
+  }
+
+  componentDidMount() {
+    this.getFormularios();
+  }
+
+
+  getFormularios = () => {
+    this.setState({ loading: true });
+
+    fetch(this.state.url)
+      .then(res => res.json())
+      .then(res => {
+        console.log(res.records);
+        this.setState({
+          formularios: res.records,
+          loading: false,
+        });
+      });
+  }
+
+  render() {
+    return (
+      <ImageBackground
         source={require("../../images/back.png")}
         style={{ width: "100%", height: "100%" }}
       >
@@ -73,9 +103,9 @@ export default class Home extends React.Component{
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ marginLeft: 25, marginTop: 80,alignContent:'center'  }}
+            style={{ marginLeft: 25, marginTop: 80, alignContent: 'center' }}
           >
-           
+
             <View
               style={{
                 alignItems: "center",
@@ -132,112 +162,53 @@ export default class Home extends React.Component{
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ marginHorizontal: -20, marginTop: 30 }}
+            style={{ marginHorizontal: -35, marginTop: 30 }}
           >
-            <View
-              style={{
-                backgroundColor: "#FEFEFE",
-                height: 200,
-                width: 190,
-                borderRadius: 15,
-                padding: 15,
-               
-              }}
-            >
-                <Text style={{ color: '#522289', textAlign:'center'}}>
-                     Formulario Prueba No.1
-                </Text>
-               
-                <View style={{height:2, width:"100%", backgroundColor:"#522289", borderRadius:20}}>
-
-                </View>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10, marginTop:15}}>
-                    <Icon name="clock-time-seven-outline"  color="#522289" size={25}></Icon>    16 dias Restantes
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="calendar-month-outline" color="#522289"  size={25}></Icon>  Del 01 jul al 16 de jul
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="download" color="#522289"  size={25}></Icon> Descargado/Completo
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="send-clock" color="#522289"  size={25}></Icon>  Pendiente de enviar
-                </Text>
-            </View>
-
-
-            <View
-              style={{
-                backgroundColor: "#FEFEFE",
-                height: 200,
-                width: 190,
-                borderRadius: 15,
-                padding: 15,
-                marginLeft:15
-               
-              }}
-            >
-                <Text style={{ color: '#522289', textAlign:'center'}}>
-                     Formulario Prueba No.1
-                </Text>
-               
-                <View style={{height:2, width:"100%", backgroundColor:"#522289", borderRadius:20}}>
-
-                </View>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10, marginTop:15}}>
-                    <Icon name="clock-time-seven-outline"  color="#522289" size={25}></Icon>    16 dias Restantes
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="calendar-month-outline" color="#522289"  size={25}></Icon>  Del 01 jul al 16 de jul
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="download" color="#522289"  size={25}></Icon> Descargado/Completo
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="send-clock" color="#522289"  size={25}></Icon>  Pendiente de enviar
-                </Text>
-            </View>
-
-            <View
-              style={{
-                backgroundColor: "#FEFEFE",
-                height: 200,
-                width: 190,
-                borderRadius: 15,
-                padding: 15,
-                marginLeft:15
-               
-              }}
-            >
-                <Text style={{ color: '#522289', textAlign:'center'}}>
-                     Formulario Prueba No.1
-                </Text>
-               
-                <View style={{height:2, width:"100%", backgroundColor:"#522289", borderRadius:20}}>
-
-                </View>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10, marginTop:15}}>
-                    <Icon name="clock-time-seven-outline"  color="#522289" size={25}></Icon>    16 dias Restantes
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="calendar-month-outline" color="#522289"  size={25}></Icon>  Del 01 jul al 16 de jul
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="download" color="#522289"  size={25}></Icon> Descargado/Completo
-                </Text>
-                <Text style={{paddingHorizontal:15, paddingVertical:2, fontSize:10}}>
-                    <Icon name="send-clock" color="#522289"  size={25}></Icon>  Pendiente de enviar
-                </Text>
-            </View>
-
-            
-
-            
           
+
+            {this.state.formularios.map((dataInfo, i) => {
+              return (
+                <View key={"fun"+dataInfo.id}
+                  style={{
+                    backgroundColor: "#FEFEFE",
+                    height: 200,
+                    width: 190,
+                    borderRadius: 15,
+                    marginLeft:15,
+                    padding: 15,
+
+                  }}
+                >
+                  <Text style={{ color: '#522289', textAlign: 'center' }}>
+                    {dataInfo.nombre}
+                  </Text>
+
+                  <View style={{ height: 2, width: "100%", backgroundColor: "#522289", borderRadius: 20 }}>
+
+                  </View>
+                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10, marginTop: 15 }}>
+                    <Icon name="clock-time-seven-outline" color="#522289" size={25}></Icon>    16 dias Restantes
+                  </Text>
+                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
+                    <Icon name="calendar-month-outline" color="#522289" size={25}></Icon>  {dataInfo.vigenciaInicio} al {dataInfo.vigenciaFin}
+                  </Text>
+                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
+                    <Icon name="download" color="#522289" size={25}></Icon> Descargado/Completo
+                  </Text>
+                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
+                    <Icon name="send-clock" color="#522289" size={25}></Icon>  Pendiente de enviar
+                  </Text>
+                </View>
+
+
+              )
+            })}
+
+
           </ScrollView>
         </View>
       </ImageBackground>
-            
-            );
-    }
+
+    );
+  }
 }
