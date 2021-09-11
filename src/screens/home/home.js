@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, ViewPropTypes, ImageBackground, Image, TextInput } from 'react-native';
-import { ScrollView, TouchableOpacity } from "react-native-gesture-handler";
+import { View, Text, ViewPropTypes, ImageBackground, Image, TextInput, TouchableOpacity } from 'react-native';
+import { ScrollView } from "react-native-gesture-handler";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import Moment from 'moment';
 export default class Home extends React.Component {
   constructor(props) {
     super(props);
@@ -15,6 +16,7 @@ export default class Home extends React.Component {
   }
 
   componentDidMount() {
+
     this.getFormularios();
   }
 
@@ -25,7 +27,7 @@ export default class Home extends React.Component {
     fetch(this.state.url)
       .then(res => res.json())
       .then(res => {
-        console.log(res.records);
+        //console.log(res.records);
         this.setState({
           formularios: res.records,
           loading: false,
@@ -77,7 +79,7 @@ export default class Home extends React.Component {
               color: "#a2a2db",
             }}
           >
-            Bienvenido, Recuerda revisar tus conexiona internet para actulizar tu formularios
+            Bienvenido, Recuerda revisar tu conexión de internet para actualizar tu formularios.
           </Text>
 
           {/* <View
@@ -105,20 +107,22 @@ export default class Home extends React.Component {
             showsHorizontalScrollIndicator={false}
             style={{ marginLeft: 25, marginTop: 80, alignContent: 'center' }}
           >
+            <TouchableOpacity onPress={() => this.getFormularios() }>
+              <View
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: 50,
+                  width: 50,
+                  borderRadius: 50,
+                  backgroundColor: "#ff5c83",
+                  marginHorizontal: 22,
+                }}
+              >
+                <Icon name="refresh" color="white" size={32} />
+              </View>
+            </TouchableOpacity>
 
-            <View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                height: 50,
-                width: 50,
-                borderRadius: 50,
-                backgroundColor: "#ff5c83",
-                marginHorizontal: 22,
-              }}
-            >
-              <Icon name="refresh" color="white" size={32} />
-            </View>
 
             <View
               style={{
@@ -164,42 +168,46 @@ export default class Home extends React.Component {
             showsHorizontalScrollIndicator={false}
             style={{ marginHorizontal: -35, marginTop: 30 }}
           >
-          
+
 
             {this.state.formularios.map((dataInfo, i) => {
+              const fin = Moment(dataInfo.vigenciaInicio);
+              const ini = Moment(dataInfo.vigenciaFin);
               return (
-                <View key={"fun"+dataInfo.id}
-                  style={{
-                    backgroundColor: "#FEFEFE",
-                    height: 200,
-                    width: 190,
-                    borderRadius: 15,
-                    marginLeft:15,
-                    padding: 15,
+                <TouchableOpacity key={"fun" + dataInfo.id}
+                  onPress={() => this.props.navigation.navigate('Detail', { idFormulario: dataInfo.id })}>
+                  <View
+                    style={{
+                      backgroundColor: "#FEFEFE",
+                      height: 200,
+                      width: 200,
+                      borderRadius: 15,
+                      marginLeft: 15,
+                      padding: 10,
 
-                  }}
-                >
-                  <Text style={{ color: '#522289', textAlign: 'center' }}>
-                    {dataInfo.nombre}
-                  </Text>
+                    }}
+                  >
+                    <Text style={{ color: '#522289', textAlign: 'center' }}>
+                      {dataInfo.nombre}
+                    </Text>
 
-                  <View style={{ height: 2, width: "100%", backgroundColor: "#522289", borderRadius: 20 }}>
+                    <View style={{ height: 2, width: "100%", backgroundColor: "#522289", borderRadius: 20 }}>
 
+                    </View>
+                    <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10, marginTop: 15 }}>
+                      <Icon name="clock-time-seven-outline" color="#522289" size={25}></Icon>  {ini.diff(fin, 'days')} dias Restantes
+                    </Text>
+                    <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
+                      <Icon name="calendar-month-outline" color="#522289" size={25}></Icon>  {Moment(dataInfo.vigenciaInicio).format('d MMM YYYY')} al {Moment(dataInfo.vigenciaFin).format('d MMM YYYY')}
+                    </Text>
+                    <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
+                      <Icon name="download" color="#522289" size={25}></Icon> Descargado/Completo
+                    </Text>
+                    <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
+                      <Icon name="send-clock" color="#522289" size={25}></Icon>  Pendiente de enviar
+                    </Text>
                   </View>
-                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10, marginTop: 15 }}>
-                    <Icon name="clock-time-seven-outline" color="#522289" size={25}></Icon>    16 dias Restantes
-                  </Text>
-                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
-                    <Icon name="calendar-month-outline" color="#522289" size={25}></Icon>  {dataInfo.vigenciaInicio} al {dataInfo.vigenciaFin}
-                  </Text>
-                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
-                    <Icon name="download" color="#522289" size={25}></Icon> Descargado/Completo
-                  </Text>
-                  <Text style={{ paddingHorizontal: 15, paddingVertical: 2, fontSize: 10 }}>
-                    <Icon name="send-clock" color="#522289" size={25}></Icon>  Pendiente de enviar
-                  </Text>
-                </View>
-
+                </TouchableOpacity>
 
               )
             })}
