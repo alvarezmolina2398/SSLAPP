@@ -12,6 +12,10 @@ target 'ssl_App' do
     :hermes_enabled => false
   )
 
+  pod 'react-native-signature-capture', :path => '../node_modules/react-native-signature-capture'
+
+  pod 'react-native-webview', :path => '../node_modules/react-native-webview'
+
   target 'ssl_AppTests' do
     inherit! :complete
     # Pods for testing

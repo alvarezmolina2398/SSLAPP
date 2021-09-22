@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Alert, Modal, Image, ImageBackground, TextInput, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState } from 'react';
+import { View, Text, Alert, Modal, Image, ImageBackground, TextInput, StyleSheet, TouchableOpacity, Button } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Moment from 'moment';
 import { ScrollView } from "react-native-gesture-handler";
@@ -8,10 +8,17 @@ import DateField from "react-native-datefield"
 import RNPickerSelect from 'react-native-picker-select';
 import RadioForm, { RadioButton, RadioButtonInput, RadioButtonLabel } from 'react-native-simple-radio-button';
 import BouncyCheckbox from "react-native-bouncy-checkbox";
+import SignatureView from "../../componets/SignatureView"
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from "@react-native-community/netinfo";
+
 export default class Detail extends React.Component {
   constructor(props) {
     super(props);
 
+    //const data, setData] = useState(null);
+    // this.signature = React.useState(null);
+    this.signatureView = React.createRef(null);
     this.state = {
       modalVisible: false,
       loading: false,
@@ -19,101 +26,243 @@ export default class Detail extends React.Component {
       encabezado: {},
       idFormulario: 0,
       dataForm: {},
+      firma: null,
+      signature: null,
+      idusuario: '',
+      isConnected: false
     }
 
   }
 
 
+  unsubscribe = NetInfo.addEventListener(statex => {
+    // console.log("Connection type", state.type);
+    console.log("Is connected?", statex.isConnected);
+    this.setState({
+      isConnected: statex.isConnected
+    });
+
+  });
+
+
+
+  getData = async () => {
+    try {
+      const value = await AsyncStorage.getItem('@idusario')
+      // console.log(value)
+      if (value !== null) {
+        // value previously stored 
+        this.setState({
+          idusuario: value
+        });
+      }
+    } catch (e) {
+      // error reading value 
+      console.log(e)
+    }
+  }
+
+
+  onSave = function (result) {
+    // console.log(result)
+    let res = `data:image/png;base64,${result.encoded}`;
+
+    this.state.signature = res;
+    this.signatureView.current.show(false);
+
+    this.setDataToForm('signature', res);
+    // console.log(this.state.signature)
+  };
+
+  handleEmpty = () => {
+    console.log('Empty');
+  }
+
+  getFormularioLocal = async (id) => {
+    try {
+      let ipA = '';
+      NetworkInfo.getIPV4Address().then(ipAddress => {
+        ipA = ipAddress;
+      });
+      let id_Fomsave = '@formulario_' + id;
+      const jsonValue = await AsyncStorage.getItem(id_Fomsave);
+
+      let strtdata = '{"idUsuario":"' + + this.state.idusuario + '","ip": "' + ipA + '", ' +
+        '"navegador":"N/A", ' +
+        '"dispositivo":"dispositivo móvil",' +
+        '"longitud":"-90.5328", ' +
+        '"latitud":"14.6248", ' +
+        '"signature":"", ' +
+        '"idFormulario":"' + + this.props.route.params.idFormulario + '",';
+      let itemp = 0;
+      let res = JSON.parse(jsonValue);
+      res.records[0].detalle.forEach(element => {
+        strtdata += ('"' + element.name + '": "",');
+      });
+
+      strtdata = strtdata.substring(0, strtdata.length - 1);
+      strtdata += '}';
+
+      this.setState({
+        formularios: res.records[0].detalle,
+        encabezado: res.records[0],
+        loading: false,
+        dataForm: JSON.parse(strtdata)
+      });
+
+    } catch (e) {
+      console.log(e)
+    }
+  }
 
 
   componentDidMount() {
+    NetInfo.fetch().then(state => {
+
+      this.setState({
+        isConnected: state.isConnected
+      })
+
+
+    });
+
+
+
     this.getFormulario();
 
   }
 
 
+
+
+
   enviarData() {
     // console.log(this.state.dataForm);
 
+    if (this.state.isConnected) {
+      var myHeaders = new Headers();
+      myHeaders.append("Content-Type", "application/json");
 
-    var myHeaders = new Headers();
-    myHeaders.append("Content-Type", "application/json");
+      var raw = JSON.stringify({
+        "data": this.state.dataForm
+      });
 
-    var raw = JSON.stringify({
-      "data": this.state.dataForm
-    });
+      var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: raw,
+        redirect: 'follow'
+      };
 
-    var requestOptions = {
-      method: 'POST',
-      headers: myHeaders,
-      body: raw,
-      redirect: 'follow'
-    };
+      fetch("https://backend.ssldigital.app/valores", requestOptions)
+        .then(res => res.json())
+        .then(res => {
+          if (res.message == "ok") {
+            this.setState({
+              loading: false,
+            })
+            this.props.navigation.pop();
+          } else {
 
-    fetch("https://backend.ssldigital.app/valores", requestOptions)
-      .then(res => res.json())
-      .then(res => {
-        if (res.message == "ok") {
-          this.setState({
-            loading: false,
-          })
-          this.props.navigation.pop();
-        } else {
+          }
+        })
+        .catch(error => console.log('error', error));
+    } else {
 
-        }
-      })
-      .catch(error => console.log('error', error));
+      var raw = {
+        "data": this.state.dataForm
+      };
+
+      this.guardarPendientes(raw);
+      
+
+    }
+
   }
 
+  guardarPendientes= async (raw) => {
+    const jsonPendientes = await AsyncStorage.getItem('@formulariosPendientes')
+    if (jsonPendientes != null && jsonPendientes != ""){
+      let newjsonPendientes  = JSON.parse(jsonPendientes);
+
+      newjsonPendientes.push(raw);
+
+      await AsyncStorage.setItem('@formulariosPendientes',JSON.stringify(newjsonPendientes));
+
+
+    }else{
+      let Pendientes = [];
+      Pendientes.push(raw)
+      await AsyncStorage.setItem('@formulariosPendientes',JSON.stringify(Pendientes));
+    }
+
+
+    this.props.navigation.pop();
+  }
 
   goBack() {
 
     this.props.navigation.pop();
   }
 
-
-
   getFormulario = () => {
+    this.getData();
     // Get Local IP
     let ipA = '';
-    NetworkInfo.getIPAddress().then(ipAddress => {
+    NetworkInfo.getIPV4Address().then(ipAddress => {
       ipA = ipAddress;
     });
     this.setState({ loading: true });
-    let url = 'https://backend.ssldigital.app/formulario?id=' + this.props.route.params.idFormulario;
-    // console.log(url)
-    fetch(url)
-      .then(res => res.json())
-      .then(res => {
-        //console.log(res.records[0].detalle);
 
-        let strtdata = '{"idUsuario":"34","ip": "' + ipA + '", ' +
-          '"navegador":"N/A", ' +
-          '"dispositivo":"dispositivo móvil",' +
-          '"longitud":"-90.5328", ' +
-          '"latitud":"14.6248", ' +
-          '"signature":"", ' +
-          '"idFormulario":"' + + this.props.route.params.idFormulario + '",';
-        let itemp = 0;
-        res.records[0].detalle.forEach(element => {
-           strtdata += ('"' + element.name + '": "",');
+    console.log(this.state.isConnected)
+    if (this.state.isConnected) {
+      let url = 'https://backend.ssldigital.app/formulario?id=' + this.props.route.params.idFormulario;
+      // console.log(url)
+      fetch(url)
+        .then(res => res.json())
+        .then(res => {
+          //console.log(res.records[0].detalle);
+
+          let strtdata = '{"idUsuario":"' + + this.state.idusuario + '","ip": "' + ipA + '", ' +
+            '"navegador":"N/A", ' +
+            '"dispositivo":"dispositivo móvil",' +
+            '"longitud":"-90.5328", ' +
+            '"latitud":"14.6248", ' +
+            '"signature":"", ' +
+            '"idFormulario":"' + + this.props.route.params.idFormulario + '",';
+          let itemp = 0;
+          res.records[0].detalle.forEach(element => {
+            strtdata += ('"' + element.name + '": "",');
+          });
+
+          strtdata = strtdata.substring(0, strtdata.length - 1);
+          strtdata += '}';
+
+          // console.log(strtdata)
+          this.setState({
+            formularios: res.records[0].detalle,
+            encabezado: res.records[0],
+            loading: false,
+            dataForm: JSON.parse(strtdata)
+          });
+
         });
+    } else {
 
-        strtdata = strtdata.substring(0, strtdata.length - 1);
-        strtdata += '}';
+      this.getFormularioLocal(this.props.route.params.idFormulario);
 
-        // console.log(strtdata)
-        this.setState({
-          formularios: res.records[0].detalle,
-          encabezado: res.records[0],
-          loading: false,
-          dataForm: JSON.parse(strtdata)
-        });
 
-      });
+
+    }
+
+
+
+
+
+
+
+
   }
-
-
 
   setDataToForm = (name, value) => {
     let newData = this.state.dataForm;
@@ -122,11 +271,12 @@ export default class Detail extends React.Component {
     this.setState({
       dataForm: newData
     });
-   
-   // console.log(this.state.dataForm);
+
+    // console.log(this.state.dataForm);
   }
 
   render() {
+  
     const { modalVisible } = this.state;
     return (
       <View
@@ -338,24 +488,24 @@ export default class Detail extends React.Component {
               } else if (item.type == "checkbox-group") {
                 return (
                   <View style={InitWindowStyles.rowContainer} key={"id-" + item.id}>
-                  <Text style={InitWindowStyles.text}>{item.label}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label}</Text>
                     {item.values.map((itemx, i) => {
-                        return(
-                            <View style={{width:'100%', marginTop:10}} key={"id-rd-" + i}>
-                              <BouncyCheckbox
-                                size={25}
-                                fillColor="purple"
-                                unfillColor="#FFFFFF"
-                                text={itemx.label}
-                                iconStyle={{ borderColor: "purple" }}
-                                textStyle={{ fontFamily: "JosefinSans-Regular" }}
-                                onPress={(isChecked) => { this.setDataToForm(item.name+ "-"+(i+1),isChecked ? itemx.value : null) }}
-                              />
-                            </View>
-                        )
+                      return (
+                        <View style={{ width: '100%', marginTop: 10 }} key={"id-rd-" + i}>
+                          <BouncyCheckbox
+                            size={25}
+                            fillColor="purple"
+                            unfillColor="#FFFFFF"
+                            text={itemx.label}
+                            iconStyle={{ borderColor: "purple" }}
+                            textStyle={{ fontFamily: "JosefinSans-Regular" }}
+                            onPress={(isChecked) => { this.setDataToForm(item.name + "-" + (i + 1), isChecked ? itemx.value : null) }}
+                          />
+                        </View>
+                      )
                     }
                     )}
-                    
+
                   </View>
                 )
 
@@ -384,6 +534,33 @@ export default class Detail extends React.Component {
                   </View>
                 )
 
+              } else if (item.type == "paragraph" && item.subtype == "canvas") {
+                return (
+                  <View key={"id-" + item.id}>
+                    <TouchableOpacity
+                      style={{ height: 200, backgroundColor: '#fff', marginVertical: 16, borderRadius: 20 }}
+                      onPress={() => {
+                        this.signatureView.current.show(true);
+                      }}>
+                      <View>
+                        <Text style={styles.titleText}>
+                          {this.state.signature ? 'Tu firma:' : 'Click para Poder firmar'}
+                        </Text>
+                        {this.state.signature && (
+                          <View style={styles.imageContainer}>
+                            <Image style={styles.previewImage} source={{ uri: this.state.signature }} />
+                            <Button title="Clear" onPress={() => this.setState({ signature: null })} />
+                          </View>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                    <SignatureView
+                      ref={this.signatureView}
+                      rotateClockwise={true}
+                      onSave={(e) => this.onSave(e)}
+                    />
+                  </View>
+                )
               }
               else {
                 return (
@@ -394,7 +571,7 @@ export default class Detail extends React.Component {
               }
             })}
           </View>
-          {!this.state.loading ? <TouchableOpacity onPress={() => this.enviarData()} style={{ borderRadius: 20, margin: 16, textAlign: 'center', backgroundColor: '#5657c0', color: '#fff', height: 50, alignContent: "center" }}>
+          {!this.state.loading ? <TouchableOpacity onPress={() => this.enviarData()} style={{ borderRadius: 20, marginTop: 50, textAlign: 'center', backgroundColor: '#5657c0', color: '#fff', height: 50, alignContent: "center" }}>
             <Text style={{ color: '#fff', textAlign: 'center', alignSelf: 'center', marginTop: 15, fontSize: 16, fontWeight: 'bold' }}>ENVIAR FORMULARIO</Text>
           </TouchableOpacity> : null}
         </ScrollView>
@@ -405,7 +582,62 @@ export default class Detail extends React.Component {
 
 
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#F8F8F8',
+    alignItems: 'center',
+  },
+  titleText: {
+    marginLeft: 16,
+    fontSize: 18,
+    color: '#62757f',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    // marginTop:80
+
+  },
+  imageContainer: {
+    marginTop: 10,
+    backgroundColor: 'white',
+  },
+  previewImage: {
+    width: 300,
+    height: 300,
+    resizeMode: 'contain',
+  },
+  preview: {
+    width: 335,
+    height: 114,
+    backgroundColor: "#F8F8F8",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 15,
+  },
+  previewText: {
+    color: "#FFF",
+    fontSize: 14,
+    height: 40,
+    lineHeight: 40,
+    paddingLeft: 10,
+    paddingRight: 10,
+    backgroundColor: "#69B2FF",
+    width: 120,
+    textAlign: "center",
+    marginTop: 10,
+  },
+});
 const InitWindowStyles = StyleSheet.create({
+  preview: {
+    height: 114,
+    backgroundColor: "#F8F8F8",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 15,
+    flex: 1,
+  },
   root: {
     flex: 1,
     flexDirection: "column",
