@@ -73,7 +73,7 @@ export default class Login extends React.Component {
                 <View style={style.centrado}>
                     <View style={style.panelLogin}>
                         <View style={{ paddingHorizontal: 20 }}>
-                            <Text style={{ fontSize: 60, fontWeight: 'bold', textAlign: 'center', }}>SSL</Text>
+                            <Text style={{ fontSize: 60, fontWeight: 'bold', textAlign: 'center',color:'#000' }}>SSL</Text>
                             <Text style={{ textAlign: 'center', color: '#5657c0' }}>A DIGITAL COMPANY</Text>
                         </View>
                         <View style={{ paddingHorizontal: 20 }}>
@@ -155,7 +155,8 @@ const style = StyleSheet.create({
     text: {
         marginLeft: 16,
         marginTop: 10,
-        marginBottom: 5
+        marginBottom: 5,
+        color: '#000'
     },
     centrado: {
         height: Dimensions.get('window').height,

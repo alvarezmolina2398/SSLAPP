@@ -11,7 +11,7 @@ import BouncyCheckbox from "react-native-bouncy-checkbox";
 import SignatureView from "../../componets/SignatureView"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from "@react-native-community/netinfo";
-
+import { launchImageLibrary } from 'react-native-image-picker';
 export default class Detail extends React.Component {
   constructor(props) {
     super(props);
@@ -29,7 +29,8 @@ export default class Detail extends React.Component {
       firma: null,
       signature: null,
       idusuario: '',
-      isConnected: false
+      isConnected: false,
+      imgFile: null,
     }
 
   }
@@ -132,10 +133,6 @@ export default class Detail extends React.Component {
 
   }
 
-
-
-
-
   enviarData() {
     // console.log(this.state.dataForm);
 
@@ -161,6 +158,7 @@ export default class Detail extends React.Component {
             this.setState({
               loading: false,
             })
+            alert('Data enviada exitosamente.')
             this.props.navigation.pop();
           } else {
 
@@ -174,29 +172,29 @@ export default class Detail extends React.Component {
       };
 
       this.guardarPendientes(raw);
-      
 
+      
     }
 
   }
 
-  guardarPendientes= async (raw) => {
+  guardarPendientes = async (raw) => {
     const jsonPendientes = await AsyncStorage.getItem('@formulariosPendientes')
-    if (jsonPendientes != null && jsonPendientes != ""){
-      let newjsonPendientes  = JSON.parse(jsonPendientes);
+    if (jsonPendientes != null && jsonPendientes != "") {
+      let newjsonPendientes = JSON.parse(jsonPendientes);
 
       newjsonPendientes.push(raw);
 
-      await AsyncStorage.setItem('@formulariosPendientes',JSON.stringify(newjsonPendientes));
+      await AsyncStorage.setItem('@formulariosPendientes', JSON.stringify(newjsonPendientes));
 
 
-    }else{
+    } else {
       let Pendientes = [];
       Pendientes.push(raw)
-      await AsyncStorage.setItem('@formulariosPendientes',JSON.stringify(Pendientes));
+      await AsyncStorage.setItem('@formulariosPendientes', JSON.stringify(Pendientes));
     }
 
-
+    alert('Datos Almacenados en memoria Local, Ha espera de conexion para realziar el envio.')
     this.props.navigation.pop();
   }
 
@@ -214,7 +212,7 @@ export default class Detail extends React.Component {
     });
     this.setState({ loading: true });
 
-    console.log(this.state.isConnected)
+    console.log(this.props.route.params.idFormulario)
     if (this.state.isConnected) {
       let url = 'https://backend.ssldigital.app/formulario?id=' + this.props.route.params.idFormulario;
       // console.log(url)
@@ -275,8 +273,31 @@ export default class Detail extends React.Component {
     // console.log(this.state.dataForm);
   }
 
+
+
+  chooseFile = (name) => {
+    launchImageLibrary({
+      title: 'Select una Imagen',
+      type: 'library',
+      options: {
+        maxHeight: 200,
+        maxWidth: 200,
+        selectionLimit: 0,
+        mediaType: 'photo',
+        includeBase64: true,
+      },
+    }, text => this.setImage(name,text.assets[0].uri));
+  };
+
+
+  setImage(name,uri) {
+    this.setDataToForm(name,uri);
+    this.setState({imgFile: uri})
+    //console.log(uri);
+  }
+
   render() {
-  
+
     const { modalVisible } = this.state;
     return (
       <View
@@ -400,7 +421,7 @@ export default class Detail extends React.Component {
                 return (
 
                   <View style={InitWindowStyles.rowContainer} key={"id-" + item.id}>
-                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "")}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp","")}</Text>
                     <View style={InitWindowStyles.textdiv}>
                       <TextInput
                         autoCorrect={false}
@@ -416,7 +437,7 @@ export default class Detail extends React.Component {
               } else if (item.type == "date") {
                 return (
                   <View style={{ padding: 16 }} key={"id-" + item.id}>
-                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "")}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp","")}</Text>
                     <DateField
                       labelDate="Dia"
                       labelMonth="Mes"
@@ -488,7 +509,7 @@ export default class Detail extends React.Component {
               } else if (item.type == "checkbox-group") {
                 return (
                   <View style={InitWindowStyles.rowContainer} key={"id-" + item.id}>
-                    <Text style={InitWindowStyles.text}>{item.label}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp","")}</Text>
                     {item.values.map((itemx, i) => {
                       return (
                         <View style={{ width: '100%', marginTop: 10 }} key={"id-rd-" + i}>
@@ -561,6 +582,23 @@ export default class Detail extends React.Component {
                     />
                   </View>
                 )
+              } else if (item.type == "file") {
+                return (
+                  <View key={"id-" + item.id} >
+                    <Text style={InitWindowStyles.text}>{item.label}</Text>
+                    <TouchableOpacity
+                      activeOpacity={0.5}
+                      style={{ height: 100, backgroundColor: '#fff', marginVertical: 16, borderRadius: 20 }}
+                      onPress={() => this.chooseFile("asd")}>
+                      <Text style={styles.titleText}> 
+                        Click Para Cargar la imagen
+                      </Text>
+                      {this.state.imgFile != null ? <Text>{this.state.imgFile}</Text>
+                       : null}
+                    </TouchableOpacity>
+                  </View>
+                )
+
               }
               else {
                 return (
@@ -581,9 +619,17 @@ export default class Detail extends React.Component {
 
 
 
+
+
 }
 
 const styles = StyleSheet.create({
+  buttonStyle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    backgroundColor: '#DDDDDD',
+    padding: 5,
+  },
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -654,6 +700,7 @@ const InitWindowStyles = StyleSheet.create({
     marginLeft: 16,
     width: '100%',
     marginBottom: 5,
+    color: '#000000'
   },
   textdiv: {
     backgroundColor: '#fff',
@@ -664,13 +711,14 @@ const InitWindowStyles = StyleSheet.create({
   textInput: {
     marginLeft: 10,
     borderColor: 'black',
-
+    color: '#000000'
     //borderColor: '#eeeeee'
   },
   dateInput: {
     borderRadius: 20,
     backgroundColor: '#fff',
     width: '30%',
+    color: '#000000'
   },
   h1: {
     fontSize: 20,
