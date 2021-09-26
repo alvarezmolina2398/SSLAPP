@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Alert, Modal, Image, ImageBackground, TextInput, StyleSheet, TouchableOpacity, Button } from "react-native";
+import { View, Text, Alert, Modal, Image, ImageBackground, TextInput, StyleSheet, TouchableOpacity, Button, PermissionsAndroid } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Moment from 'moment';
 import { ScrollView } from "react-native-gesture-handler";
@@ -11,7 +11,10 @@ import BouncyCheckbox from "react-native-bouncy-checkbox";
 import SignatureView from "../../componets/SignatureView"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from "@react-native-community/netinfo";
-import { launchImageLibrary } from 'react-native-image-picker';
+import {
+  launchCamera,
+  launchImageLibrary
+} from 'react-native-image-picker';
 export default class Detail extends React.Component {
   constructor(props) {
     super(props);
@@ -45,6 +48,44 @@ export default class Detail extends React.Component {
 
   });
 
+  requestCameraPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.CAMERA,
+          {
+            title: 'Camera Permission',
+            message: 'App needs camera permission',
+          },
+        );
+        // If CAMERA Permission is granted
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    } else return true;
+  };
+
+  requestExternalWritePermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'External Storage Write Permission',
+            message: 'App needs write permission',
+          },
+        );
+        // If WRITE_EXTERNAL_STORAGE Permission is granted
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        alert('Write permission err', err);
+      }
+      return false;
+    } else return true;
+  };
 
 
   getData = async () => {
@@ -118,6 +159,8 @@ export default class Detail extends React.Component {
 
 
   componentDidMount() {
+    this.requestCameraPermission();
+    this.requestExternalWritePermission();
     NetInfo.fetch().then(state => {
 
       this.setState({
@@ -173,7 +216,7 @@ export default class Detail extends React.Component {
 
       this.guardarPendientes(raw);
 
-      
+
     }
 
   }
@@ -212,7 +255,7 @@ export default class Detail extends React.Component {
     });
     this.setState({ loading: true });
 
-    console.log(this.props.route.params.idFormulario)
+    //console.log(this.props.route.params.idFormulario)
     if (this.state.isConnected) {
       let url = 'https://backend.ssldigital.app/formulario?id=' + this.props.route.params.idFormulario;
       // console.log(url)
@@ -263,6 +306,7 @@ export default class Detail extends React.Component {
   }
 
   setDataToForm = (name, value) => {
+
     let newData = this.state.dataForm;
     newData[name] = value;
     //console.log(newData)
@@ -276,24 +320,102 @@ export default class Detail extends React.Component {
 
 
   chooseFile = (name) => {
-    launchImageLibrary({
-      title: 'Select una Imagen',
-      type: 'library',
-      options: {
-        maxHeight: 200,
-        maxWidth: 200,
-        selectionLimit: 0,
-        mediaType: 'photo',
-        includeBase64: true,
-      },
-    }, text => this.setImage(name,text.assets[0].uri));
+    // launchImageLibrary({
+    //   title: 'Select una Imagen',
+    //   type: 'library',
+    //   options: {
+    //     maxHeight: 200,
+    //     maxWidth: 200,
+    //     selectionLimit: 0,
+    //     mediaType: 'photo',
+    //     includeBase64: true,
+    //   },
+    // }, text => this.setImage(name,text.assets[0].uri));
+
+    // let options = {
+    //   title: 'Select una Imagen',
+    //   type: 'library',
+    //   options: {
+    //     maxHeight: 200,
+    //     maxWidth: 200,
+    //     selectionLimit: 0,
+    //     mediaType: 'photo',
+    //     includeBase64: true,
+    //   },
+    // }
+
+
+    // let options = {
+    //   title: 'Select Image',
+    //   customButtons: [
+    //     { name: 'customOptionKey', title: 'Choose Photo from Custom Option' },
+    //   ],
+    //   storageOptions: {
+    //     skipBackup: true,
+    //     path: 'images',
+    //   },
+    // };
+
+    try {
+      let options = {
+        title: 'Choose an Image',
+        base64: true,
+        includeBase64: true
+      };
+
+      launchImageLibrary(options, (response) => {
+        // console.log('Response = ', response);
+
+        if (response.didCancel) {
+          alert('User cancelled camera picker');
+          return;
+        } else if (response.errorCode == 'camera_unavailable') {
+          alert('Camera not available on device');
+          return;
+        } else if (response.errorCode == 'permission') {
+          alert('Permission not satisfied');
+          return;
+        } else if (response.errorCode == 'others') {
+          alert(response.errorMessage);
+          return;
+        }
+
+        let file = response.assets[0];
+        //  console.log(file)
+        //   console.log('base64 -> ', file.base64);
+        // console.log('uri -> ', file.uri);
+        // console.log('width -> ', file.width);
+        // console.log('height -> ', file.height);
+        // console.log('fileSize -> ', file.fileSize);
+        // console.log('type -> ', file.type);
+        // console.log('fileName -> ', file.fileName);
+        //setFilePath(response);
+       // console.log(name);
+        this.setImage(name, file.base64);
+      });
+
+    }
+    catch (e) {
+      console.log(e)
+
+    }
+
+
+
   };
 
 
-  setImage(name,uri) {
-    this.setDataToForm(name,uri);
-    this.setState({imgFile: uri})
+  setImage(name, uri) {
+    this.setDataToForm(name, uri);
+    this.setState({ imgFile: uri })
+    //console.log(this.state.imgFile);
     //console.log(uri);
+  }
+
+
+  getValueStore(name){
+    //console.log(this.state.dataForm);
+    return this.state.dataForm[name];
   }
 
   render() {
@@ -421,7 +543,7 @@ export default class Detail extends React.Component {
                 return (
 
                   <View style={InitWindowStyles.rowContainer} key={"id-" + item.id}>
-                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp","")}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp", "")}</Text>
                     <View style={InitWindowStyles.textdiv}>
                       <TextInput
                         autoCorrect={false}
@@ -437,7 +559,7 @@ export default class Detail extends React.Component {
               } else if (item.type == "date") {
                 return (
                   <View style={{ padding: 16 }} key={"id-" + item.id}>
-                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp","")}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp", "")}</Text>
                     <DateField
                       labelDate="Dia"
                       labelMonth="Mes"
@@ -509,7 +631,7 @@ export default class Detail extends React.Component {
               } else if (item.type == "checkbox-group") {
                 return (
                   <View style={InitWindowStyles.rowContainer} key={"id-" + item.id}>
-                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp","")}</Text>
+                    <Text style={InitWindowStyles.text}>{item.label.replace("<br>", "").replace(".&nbsp", "")}</Text>
                     {item.values.map((itemx, i) => {
                       return (
                         <View style={{ width: '100%', marginTop: 10 }} key={"id-rd-" + i}>
@@ -588,13 +710,16 @@ export default class Detail extends React.Component {
                     <Text style={InitWindowStyles.text}>{item.label}</Text>
                     <TouchableOpacity
                       activeOpacity={0.5}
-                      style={{ height: 100, backgroundColor: '#fff', marginVertical: 16, borderRadius: 20 }}
-                      onPress={() => this.chooseFile("asd")}>
-                      <Text style={styles.titleText}> 
+                      style={{ height: 150, backgroundColor: '#fff', marginVertical: 16, borderRadius: 20, padding:16 }}
+                      onPress={() => this.chooseFile(item.name)}>
+                      <Text style={styles.titleText}>
                         Click Para Cargar la imagen
                       </Text>
-                      {this.state.imgFile != null ? <Text>{this.state.imgFile}</Text>
-                       : null}
+                      {this.state.imgFile != null ? <Image
+                        source={{ uri: 'data:image/png;base64,'+ this.getValueStore(item.name) }}
+                        style={{ height: 100, width: 100 }}
+                      />
+                        : <Text></Text>}
                     </TouchableOpacity>
                   </View>
                 )
@@ -675,6 +800,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
+
 const InitWindowStyles = StyleSheet.create({
   preview: {
     height: 114,
@@ -747,7 +873,6 @@ const InitWindowStyles = StyleSheet.create({
     paddingHorizontal: 10
   }
 });
-
 
 const pickerSelectStyles = StyleSheet.create({
   inputIOS: {

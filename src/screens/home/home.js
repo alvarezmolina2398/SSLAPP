@@ -148,7 +148,7 @@ export default class Home extends React.Component {
       Pendientes.forEach(element => {
         cantidad++;
       });
-      console.log(cantidad)
+    //  console.log(cantidad)
       this.setState({
         cantidadPendientes: cantidad,
         Pendientes: Pendientes
@@ -180,19 +180,19 @@ export default class Home extends React.Component {
     //this.setState({ loading: true });
     //console.log(this.idEmpresa);
     const IdEm = this.state.idEmpresa;
-    console.log(IdEm);
+    //console.log(IdEm);
    // setTimeout(() => {console.log(IdEm)}, 1000)
     if(IdEm == null){
       this.getData();
       
     }else{
       let url = "https://backend.ssldigital.app/formulario?vigencia=true&idEmpresa=" + IdEm;
-      console.log(url)
+    //  console.log(url)
         if (this.state.isConnected) {
           fetch(url)
             .then(res => res.json())
             .then(res => {
-              console.log(res);
+              //console.log(res);
               this.setState({
                 formularios: res.records,
                 loading: false,
